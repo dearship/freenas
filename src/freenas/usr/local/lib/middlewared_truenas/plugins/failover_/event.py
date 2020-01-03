@@ -111,6 +111,13 @@ class FailoverService(Service):
 
     @private
     def event(self, ifname, vhid, event):
+        try:
+            return self._event(ifname, vhid, event)
+        finally:
+            self.middleware.call_sync('failover.status_refresh')
+
+    @private
+    def _event(self, ifname, vhid, event):
 
         if event == 'forcetakeover':
             forcetakeover = True
