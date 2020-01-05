@@ -1280,7 +1280,10 @@ class PoolService(CRUDService):
         await self.middleware.call('pool.sync_encrypted', oid)
 
         if disk:
-            await self.middleware.call('disk.unlabel', disk)
+            wipe_job = await self.middleware.call('disk.wipe', disk, 'QUICK')
+            await wipe_job.wait()
+            if wipe_job.error:
+                raise CallError(f'Failed to wipe disk {disk}: {wipe_job.error}')
 
         return True
 
@@ -1438,8 +1441,10 @@ class PoolService(CRUDService):
             'disk.label_to_disk', found[1]['path'].replace('/dev/', '')
         )
         if disk:
-            await self.middleware.call('disk.swaps_remove_disks', [disk])
-            await self.middleware.call('disk.unlabel', disk)
+            wipe_job = await self.middleware.call('disk.wipe', disk, 'QUICK')
+            await wipe_job.wait()
+            if wipe_job.error:
+                raise CallError(f'Failed to wipe disk {disk}: {wipe_job.error}')
 
     @item_method
     @accepts(Int('id'), Dict(
@@ -2168,7 +2173,10 @@ class PoolService(CRUDService):
             job.set_progress(80, 'Cleaning disks')
 
             async def unlabel(disk):
-                return await self.middleware.call('disk.unlabel', disk, False)
+                wipe_job = await self.middleware.call('disk.wipe', disk, 'QUICK', False)
+                await wipe_job.wait()
+                if wipe_job.error:
+                    self.logger.warn(f'Failed to wipe disk {disk}: {wipe_job.error}')
             await asyncio_map(unlabel, disks, limit=16)
 
             await self.middleware.call('disk.sync_all')
