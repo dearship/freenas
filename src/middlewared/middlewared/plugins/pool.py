@@ -975,7 +975,7 @@ class PoolService(CRUDService):
             ):
                 verrors.add('options.passphrase', 'Passphrase is not valid.')
 
-        found = self.__find_disk_from_topology(options['label'], pool)
+        found = await self.middleware.call('pool.find_disk_from_topology', options['label'], pool)
 
         if not found:
             verrors.add('options.label', f'Label {options["label"]} not found.', errno.ENOENT)
@@ -1037,23 +1037,6 @@ class PoolService(CRUDService):
 
         return True
 
-    def __find_disk_from_topology(self, label, pool):
-        check = []
-        found = None
-        for root, children in pool['topology'].items():
-            check.append((root, children))
-
-        while check:
-            root, children = check.pop()
-            for c in children:
-                if c['type'] == 'DISK':
-                    if label in (c['path'].replace('/dev/', ''), c['guid']):
-                        found = (root, c)
-                        break
-                if c['children']:
-                    check.append((root, c['children']))
-        return found
-
     @item_method
     @accepts(Int('id'), Dict(
         'options',
@@ -1082,7 +1065,7 @@ class PoolService(CRUDService):
         pool = await self._get_instance(oid)
 
         verrors = ValidationErrors()
-        found = self.__find_disk_from_topology(options['label'], pool)
+        found = await self.middleware.call('pool.find_disk_from_topology', options['label'], pool)
         if not found:
             verrors.add('options.label', f'Label {options["label"]} not found on this pool.')
         if verrors:
@@ -1134,7 +1117,7 @@ class PoolService(CRUDService):
         pool = await self._get_instance(oid)
 
         verrors = ValidationErrors()
-        found = self.__find_disk_from_topology(options['label'], pool)
+        found = await self.middleware.call('pool.find_disk_from_topology', options['label'], pool)
         if not found:
             verrors.add('options.label', f'Label {options["label"]} not found on this pool.')
         if verrors:
@@ -1186,7 +1169,7 @@ class PoolService(CRUDService):
 
         verrors = ValidationErrors()
 
-        found = self.__find_disk_from_topology(options['label'], pool)
+        found = await self.middleware.call('pool.find_disk_from_topology', options['label'], pool)
         if not found:
             verrors.add('options.label', f'Label {options["label"]} not found on this pool.')
 
@@ -1241,7 +1224,7 @@ class PoolService(CRUDService):
 
         verrors = ValidationErrors()
 
-        found = self.__find_disk_from_topology(options['label'], pool)
+        found = await self.middleware.call('pool.find_disk_from_topology', options['label'], pool)
         if not found:
             verrors.add('options.label', f'Label {options["label"]} not found on this pool.')
 
